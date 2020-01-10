@@ -1,0 +1,22 @@
+name: london
+channels:
+  - defaults
+  - conda-forge
+dependencies:
+  - python=3.7
+  - matplotlib
+  - numpy
+  - pandas
+  - seaborn
+  - jupyter
+  - ipykernel
+  - regex
+  - pyjanitor
+  - openssl
+  - altair=4.0
+  - vega_datasets
+  - notebook
+  - vega
+  - jupyter_contrib_nbextensions
+  - jupyter_nbextensions_configurator
+  - xlrd
