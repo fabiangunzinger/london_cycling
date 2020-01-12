@@ -131,5 +131,5 @@ dmypy.json
 # Altair JSON graph files
 *.json
 
-# csv files
-*.csv
+# Files in data folder
+/data
