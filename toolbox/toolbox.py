@@ -7,18 +7,28 @@ def make_sample_data():
 	"""
 	Creates a 1 percent sample of the 2016 cycle hires data.
 	"""
-
 	files = glob.glob('./data/2016TripData/*.csv')
-	frames= [pd.read_csv(f) for f in files]
-	drop_vars = 'unnamed_ | _logical_terminal | endstationpriority_'
+
+	def sec_to_min(x):
+	    return x/60
 
 	df = (
-	    pd.concat(frames, ignore_index=True, sort=False)
+	    pd.concat([pd.read_csv(f) for f in files], 
+	              ignore_index=True, sort=False)
 	    .clean_names()
-	    .remove_columns(list(df.filter(regex=drop_vars)))
-	    .transform_column('duration', lambda x: x/60)
+	    .remove_columns(['unnamed_9',
+	                     'unnamed_10',
+	                     'unnamed_11',
+	                     'endstation_logical_terminal',
+	                     'startstation_logical_terminal',
+	                     'endstationpriority_id',
+	                     'end_date']
+	                   )
+	    .rename_column('start_date', 'date')
+	    .transform_column('duration', sec_to_min)
 	)
 
 	df.sample(frac = 0.1).to_csv('./data/sample2016.csv', index=False)
-	return 'Sample saved as ./data/sample2016.csv'
+	'Sample saved as ./data/sample2016.csv'
+
 
