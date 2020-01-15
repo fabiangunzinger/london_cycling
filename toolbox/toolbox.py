@@ -1,14 +1,51 @@
 import glob
 import janitor
+import re
 import numpy as np
 import pandas as pd
 import geopandas as gpd
+import pandas_flavor as pf
 
-def make_sample_data():
+@pf.register_dataframe_method
+def keep_columns(df, column_names):
+    return df[column_names]
+
+
+def get_hiring_data(subset=''):
+	"""
+	Load cycle hire data for subset of data. Cannot scrape website 
+	because data is hidden, so download list of all files to csv.
+	"""
+	url = 'https://cycling.data.tfl.gov.uk/usage-stats/'
+	csvs = open('./data/cycle_hires/hiring_data_csvs.csv', 
+	            'r').read().splitlines()    
+	files = [url+f for f in csvs if re.search(subset, f)]
+	dfs = [pd.read_csv(f) for f in files]
+
+	df = (
+	    pd.concat(dfs, ignore_index=True, sort=False)
+	    .dropna()
+	    .clean_names()
+	    .drop_duplicates()
+	    .keep_columns(['duration', 'end_date', 'endstation_id', 'startstation_id', 'start_date'])
+	    .transform_column('duration', lambda x: x/60)
+	    .change_type('startstation_id', int)
+	    .change_type('endstation_id', int)
+	)
+
+	df['start_date'] = pd.to_datetime(df['start_date'], 
+	                                  format='%d/%m/%Y %H:%M')
+	df['end_date'] = pd.to_datetime(df['end_date'],
+	                                format='%d/%m/%Y %H:%M')
+	return files
+
+
+
+def make_2016sample_data():
 	"""
 	Creates a 1 percent sample of the 2016 cycle hires data.
 	"""
-	files = glob.glob('./data/2016_trip_data/*.csv')
+	files = glob.glob('./data/cycle_hires/2016_trip_data/*.csv')
 
 	def sec_to_min(x):
 	    return x/60
@@ -34,14 +71,25 @@ def make_sample_data():
 
 
 def get_stations_data():
+	"""
+	Returns dataFrame with unique entries for each station name. 
+	Multiple stations per name are aggregated using Geopanda's 
+	dissolve function.
+	"""
 	fp = "./data/geo_data/cycle_parking_maps/CycleParking 2015.TAB"
 	stations = (
 	    gpd.read_file(fp, driver="MapInfo File")
+        .dropna()
 	    .clean_names()
 	    .rename_columns({'cpuniqueid':'station_id', 
 	                      'number_of_parking_spaces':'parking_spaces'})
+        .transform_column('station_id', lambda x: re.sub('[a-z]', '', x))
+        .change_type('station_id', int)
 	    .keep_columns(['station_id', 'station_name', 
 	                  'parking_spaces', 'geometry'])
+        .dissolve(by='station_name', aggfunc={'parking_spaces':'sum',
+                                              'station_id':'first'})
+        .reset_index()
 	    )
 	return stations
 
