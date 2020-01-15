@@ -22,4 +22,5 @@ dependencies:
   - xlrd
   - requests
   - beautifulsoup4
-  - boto3
+  - geopandas
+  - descartes
