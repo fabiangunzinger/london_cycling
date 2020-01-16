@@ -1,44 +1,53 @@
 import glob
 import janitor
 import re
+import warnings
 import numpy as np
 import pandas as pd
 import geopandas as gpd
 import pandas_flavor as pf
+
+warnings.filterwarnings('ignore')
 
 @pf.register_dataframe_method
 def keep_columns(df, column_names):
     return df[column_names]
 
 
-def get_hiring_data(subset=''):
-	"""
-	Load cycle hire data for subset of data. Cannot scrape website 
-	because data is hidden, so download list of all files to csv.
-	"""
-	url = 'https://cycling.data.tfl.gov.uk/usage-stats/'
-	csvs = open('./data/cycle_hires/hiring_data_csvs.csv', 
-	            'r').read().splitlines()    
-	files = [url+f for f in csvs if re.search(subset, f)]
-	dfs = [pd.read_csv(f) for f in files]
+def get_hiring_data(subset='',
+                    to_csv=False):
+    """
+    Load cycle hire data from https://cycling.data.tfl.gov.uk
+    for subset of data and either return dataFrame or save it
+    to disk.
 
-	df = (
-	    pd.concat(dfs, ignore_index=True, sort=False)
-	    .dropna()
-	    .clean_names()
-	    .drop_duplicates()
-	    .keep_columns(['duration', 'end_date', 'endstation_id', 'startstation_id', 'start_date'])
-	    .transform_column('duration', lambda x: x/60)
-	    .change_type('startstation_id', int)
-	    .change_type('endstation_id', int)
-	)
+    Cannot scrape website because data is hidden, so function 
+    uses downloaded list of all available csvs files.
+    """
+    url = 'https://cycling.data.tfl.gov.uk/usage-stats/'
+    csvs = (open('data/cycle_hires/cycle_hires_csvs.csv', 'r')
+            .read().splitlines())
+    files = [url + f for f in csvs if re.search(subset, f)]
 
-	df['start_date'] = pd.to_datetime(df['start_date'], 
-	                                  format='%d/%m/%Y %H:%M')
-	df['end_date'] = pd.to_datetime(df['end_date'],
-	                                format='%d/%m/%Y %H:%M')
-	return files
-
+    df = (
+        pd.concat([pd.read_csv(f) for f in files])
+        .clean_names()
+        .drop_duplicates()
+        .dropna()
+        .keep_columns(['duration', 'end_date', 'endstation_id', 
+                       'start_date', 'startstation_id'])
+        .transform_column('duration', lambda x: x / 60)
+        .to_datetime('end_date', format='%d/%m/%Y %H:%M')
+        .to_datetime('start_date', format='%d/%m/%Y %H:%M')
+        .change_type('startstation_id', int)
+        .change_type('endstation_id', int)
+    )
+    
+    if to_csv == True:
+        df.to_csv('data/cycle_hires/cycleHires{0}.csv'.format(subset),
+                  index=False)
+    else:
+        return df
 
 
 def make_2016sample_data():
