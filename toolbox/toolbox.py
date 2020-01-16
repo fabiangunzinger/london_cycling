@@ -114,7 +114,7 @@ def get_borough_boundaries():
 
 
 def get_borough_profiles():
-	file = 'data/london_borough_profiles.csv'
+	file = 'data/london_boroughs/london_borough_profiles.csv'
 	boroughs = (
 	    pd.read_csv(file, header=0)
 	    .rename_columns({'GLA_Population_Estimate_2017':'population', 

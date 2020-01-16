@@ -24,3 +24,4 @@ dependencies:
   - beautifulsoup4
   - geopandas
   - descartes
+  - missingno
